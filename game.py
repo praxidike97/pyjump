@@ -20,16 +20,18 @@ WHITE = (255, 255, 255)
 
 
 class Game():
-    def __init__(self, margin_bottom):
+    def __init__(self):
         self.scrolling = False
-        self.margin_bottom = margin_bottom
         self.current_scrolling_steps = 0
         self.scrolling_speed = 3
         self.score = 0
         self.bars = list()
+        self.jumping_time = 0.0
 
         # Create the player
         self.player = Player()
+
+        self.margin_bottom = self.player.rect.y - 100
 
         # Create initial bars
         bar_positions = [(100, 400), (140, 300), (100, 420), (70, 200), (160, 100), (100, 500)]
@@ -46,13 +48,13 @@ class Game():
     def check_is_on_bar(self):
         # Check if the player will arrive on a abar in the next movement
         for bar in self.bars:
-            if (bar.rect.x - bar.rect.width / 2 < self.rect.x - self.rect.width / 2 < bar.rect.x + bar.rect.width / 2 or \
-                bar.rect.x - bar.rect.width / 2 < self.rect.x + self.rect.width / 2 < bar.rect.x + bar.rect.width / 2) and \
-                    self.rect.y + self.rect.height / 2 < bar.rect.y - bar.rect.height < self.rect.y + self.rect.height / 2 - round((self.initial_jumping_velocity - g * self.jumping_time)):
+            if (bar.rect.x - bar.rect.width / 2 < self.player.rect.x - self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2 or \
+                bar.rect.x - bar.rect.width / 2 < self.player.rect.x + self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2) and \
+                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.jumping_time)):
                 return True
         return False
 
-    def update(self, dt=dt):
+    def update(self, dt):
         # Update the bars
         for bar in self.bars:
             bar.update(dt=dt)
@@ -64,16 +66,16 @@ class Game():
 
         if self.check_is_on_bar():
             # Jumping time cannot be set to 0.0 if we are currently jumping up
-            if g * self.player.jumping_time > self.player.initial_jumping_velocity:
+            if g * self.jumping_time > self.player.initial_jumping_velocity:
                 if self.player.rect.y < game.margin_bottom and game.margin_bottom - self.player.rect.y > 10:
                     self.current_scrolling_steps = int((game.margin_bottom - self.player.rect.y) / self.scrolling_speed)
                     self.scrolling = True
                     self.score += int((self.margin_bottom - self.player.rect.y))
                     self.generate_new_bars()
 
-                self.player.jumping_time = 0.0
+                self.jumping_time = 0.0
         else:
-            movement += np.array([0, -(self.player.initial_jumping_velocity - g * self.player.jumping_time)]).astype(
+            movement += np.array([0, -(self.player.initial_jumping_velocity - g * self.jumping_time)]).astype(
                 int)
 
         # Scroll the game if neccesary
@@ -148,7 +150,7 @@ class Bar(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface((BAR_WIDTH, BAR_HEIGHT))
         # Give the bar a random color
-        self.image.fill(random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+        self.image.fill((random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)))
         self.rect = self.image.get_rect(x=position[0], y=position[1])
 
     def update(self, dt):
@@ -156,7 +158,7 @@ class Bar(pygame.sprite.Sprite):
 
 
 if __name__ == "__main__":
-    game = Game(margin_bottom=player.rect.y - 100)
+    game = Game()
     pygame.font.init()
     running = True
     while running:
@@ -167,17 +169,17 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 # Check if player moves to the right or to the left
-                player.is_moving_left = (event.key == pygame.K_a)
-                player.is_moving_right = (event.key == pygame.K_d)
+                game.player.is_moving_left = (event.key == pygame.K_a)
+                game.player.is_moving_right = (event.key == pygame.K_d)
             elif event.type == pygame.KEYUP:
                 # Stop all movements
-                player.is_moving_left = player.is_moving_right = False
+                game.player.is_moving_left = game.player.is_moving_right = False
 
         # Update the game (also updates the player and the bars)
         game.update(dt=dt)
 
         # Draw the new player position and bars
-        screen.blit(player.image, player.rect)
+        screen.blit(game.player.image, game.player.rect)
         for bar in game.bars:
             screen.blit(bar.image, bar.rect)
 
