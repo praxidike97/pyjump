@@ -1,6 +1,9 @@
 import pygame
 import numpy as np
 import random
+import argparse
+import time
+import threading
 
 successes, failures = pygame.init()
 
@@ -26,12 +29,23 @@ class Game():
         self.scrolling_speed = 3
         self.score = 0
         self.bars = list()
-        self.jumping_time = 0.0
+        self.running = False
+
+        # For programming interface: the game just continues, when step is called
+        self.step_wait = True
+
+        # For programming interface: step function waits, until new state is set
+        self.state_set = False
+
+        # For programming interface: the current state of the game
+        self.state = None
+
+        self.done = False
 
         # Create the player
         self.player = Player()
 
-        self.margin_bottom = self.player.rect.y - 100
+        self.margin_bottom = SCREEN_HEIGHT - 100
 
         # Create initial bars
         bar_positions = [(100, 400), (140, 300), (100, 420), (70, 200), (160, 100), (100, 500)]
@@ -50,7 +64,7 @@ class Game():
         for bar in self.bars:
             if (bar.rect.x - bar.rect.width / 2 < self.player.rect.x - self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2 or \
                 bar.rect.x - bar.rect.width / 2 < self.player.rect.x + self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2) and \
-                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.jumping_time)):
+                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)):
                 return True
         return False
 
@@ -66,16 +80,16 @@ class Game():
 
         if self.check_is_on_bar():
             # Jumping time cannot be set to 0.0 if we are currently jumping up
-            if g * self.jumping_time > self.player.initial_jumping_velocity:
-                if self.player.rect.y < game.margin_bottom and game.margin_bottom - self.player.rect.y > 10:
-                    self.current_scrolling_steps = int((game.margin_bottom - self.player.rect.y) / self.scrolling_speed)
+            if g * self.player.jumping_time > self.player.initial_jumping_velocity:
+                if self.player.rect.y < self.margin_bottom and self.margin_bottom - self.player.rect.y > 10:
+                    self.current_scrolling_steps = int((self.margin_bottom - self.player.rect.y) / self.scrolling_speed)
                     self.scrolling = True
                     self.score += int((self.margin_bottom - self.player.rect.y))
                     self.generate_new_bars()
 
-                self.jumping_time = 0.0
+                self.player.jumping_time = 0.0
         else:
-            movement += np.array([0, -(self.player.initial_jumping_velocity - g * self.jumping_time)]).astype(
+            movement += np.array([0, -(self.player.initial_jumping_velocity - g * self.player.jumping_time)]).astype(
                 int)
 
         # Scroll the game if neccesary
@@ -98,6 +112,7 @@ class Game():
 
         # Check if game ends
         if self.player.rect.y + self.player.rect.height / 2 > SCREEN_HEIGHT:
+            self.done = True
             quit()
 
         # Check if bars need to be removed
@@ -108,7 +123,82 @@ class Game():
         self.bars = new_bars
 
         # Increase the jumping time
-        self.jumping_time += dt
+        self.player.jumping_time += dt
+
+    def _start(self, play=False):
+        pygame.font.init()
+        while True:
+
+            # Discretize the game
+            if not play:
+                while self.step_wait:
+                    # time.sleep(0.1)
+                    pass
+                    # print(self.step_wait)
+
+            self.step_wait = True
+            print(self.player.is_moving_right)
+
+            #dt = clock.tick(FPS) / 1000
+            dt = 1./60.
+            time.sleep(dt)
+            screen.fill(BLACK)
+
+            # Query if the player pressed a key
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    # Check if player moves to the right or to the left
+                    self.player.is_moving_left = (event.key == pygame.K_a)
+                    self.player.is_moving_right = (event.key == pygame.K_d)
+                elif event.type == pygame.KEYUP:
+                    # Stop all movements
+                    self.player.is_moving_left = self.player.is_moving_right = False
+
+            # Update the game (also updates the player and the bars)
+            self.update(dt=dt)
+
+            # Set the new state of the game
+            self.state = [self.player.rect.x, self.player.rect.y]
+            self.state_set = True
+
+            # Draw the new player position and bars
+            screen.blit(self.player.image, self.player.rect)
+            for bar in self.bars:
+                screen.blit(bar.image, bar.rect)
+
+            # Set the score
+            myfont = pygame.font.SysFont('Arial', 20)
+            textsurface = myfont.render(str(self.score), False, (255, 255, 255))
+            text_rect_obj = textsurface.get_rect()
+            screen.blit(textsurface, text_rect_obj)
+
+            #if not play:
+                #pass
+            #    self.player.is_moving_left = self.player.is_moving_right = False
+
+            # Update the whole screen
+            pygame.display.update()
+
+    def start(self, play=False):
+        thread = threading.Thread(target=self._start,  args=(play,))
+        thread.start()
+
+    def moveRight(self):
+        self.player.is_moving_right = True
+
+    def moveLeft(self):
+        self.player.is_moving_left = True
+
+    def step(self):
+        self.step_wait = False
+        while not self.state_set:
+            pass
+
+        self.state_set = False
+
+        self.player.is_moving_left = self.player.is_moving_right = False
+
+        return self.state
 
 
 class Player(pygame.sprite.Sprite):
@@ -158,36 +248,12 @@ class Bar(pygame.sprite.Sprite):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--play', action='store_true')
+    FLAGS, unparsed = parser.parse_known_args()
+
     game = Game()
     pygame.font.init()
-    running = True
-    while running:
-        dt = clock.tick(FPS) / 1000
-        screen.fill(BLACK)
+    pygame.display.set_caption('PyJump')
 
-        # Query if the player pressed a key
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                # Check if player moves to the right or to the left
-                game.player.is_moving_left = (event.key == pygame.K_a)
-                game.player.is_moving_right = (event.key == pygame.K_d)
-            elif event.type == pygame.KEYUP:
-                # Stop all movements
-                game.player.is_moving_left = game.player.is_moving_right = False
-
-        # Update the game (also updates the player and the bars)
-        game.update(dt=dt)
-
-        # Draw the new player position and bars
-        screen.blit(game.player.image, game.player.rect)
-        for bar in game.bars:
-            screen.blit(bar.image, bar.rect)
-
-        # Set the score
-        myfont = pygame.font.SysFont('Arial', 20)
-        textsurface = myfont.render(str(game.score), False, (255, 255, 255))
-        text_rect_obj = textsurface.get_rect()
-        screen.blit(textsurface, text_rect_obj)
-
-        # Update the whole screen
-        pygame.display.update()
+    game.start(play=FLAGS.play)
