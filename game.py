@@ -44,7 +44,6 @@ class Game():
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        IMAGE = pygame.image.load('yuying.png').convert_alpha()
         self.image = pygame.Surface((32, 32))
         self.image.fill(WHITE)
 
@@ -177,15 +176,8 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 player.is_moving_left = True
-                #player.velocity[0] = -200 * dt
             elif event.key == pygame.K_d:
                 player.is_moving_right = True
-                #player.velocity[0] = 200 * dt
-            elif event.key == pygame.K_SPACE:
-                print("Space!")
-                if not player.is_jumping:
-                    player.is_jumping = True
-                    player.jumping_time = 0.0
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 player.is_moving_left = False
