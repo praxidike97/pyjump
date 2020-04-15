@@ -27,7 +27,6 @@ class Game():
         self.scrolling = False
         self.current_scrolling_steps = 0
         self.scrolling_speed = 3
-        self.score = 0
         self.bars = list()
         self.running = False
 
@@ -40,15 +39,35 @@ class Game():
         # For programming interface: the current state of the game
         self.state = None
 
+        # For programming interface: whether to render or not
+        self.render = True
+
+        # For programming interface: the last bar the player jumped on
+        self.last_jumped_on_bar = None
+
+        self.last_bar_left = False
+
         self.done = False
 
         # Create the player
         self.player = Player()
 
-        self.margin_bottom = SCREEN_HEIGHT - 100
+        self.margin_bottom = SCREEN_HEIGHT #SCREEN_HEIGHT - 100
 
         # Create initial bars
-        bar_positions = [(100, 400), (140, 300), (100, 420), (70, 200), (160, 100), (100, 500)]
+        #bar_positions = [(random.randint(30, SCREEN_WIDTH - BAR_WIDTH - 30), 400),
+        #                 (random.randint(30, SCREEN_WIDTH - BAR_WIDTH - 30), 300),
+        #                 (random.randint(30, SCREEN_WIDTH - BAR_WIDTH - 30), 200),
+        #                 (random.randint(30, SCREEN_WIDTH - BAR_WIDTH - 30), 100),
+        #                 (random.randint(30, SCREEN_WIDTH - BAR_WIDTH - 30), 500)]
+
+        # Create initial bars
+        bar_positions = [(210, 400),
+                         (40, 300),
+                         (210, 200),
+                         (40, 100),
+                         (40, 500)]
+
         for bar_position in bar_positions:
             self.bars.append(Bar(position=bar_position))
 
@@ -60,11 +79,12 @@ class Game():
         self.bars += list_bars
 
     def check_is_on_bar(self):
-        # Check if the player will arrive on a abar in the next movement
+        # Check if the player will arrive on a bar in the next movement
         for bar in self.bars:
             if (bar.rect.x - bar.rect.width / 2 < self.player.rect.x - self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2 or \
                 bar.rect.x - bar.rect.width / 2 < self.player.rect.x + self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2) and \
-                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)):
+                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)) + 1:
+                self.last_jumped_on_bar = bar
                 return True
         return False
 
@@ -84,7 +104,7 @@ class Game():
                 if self.player.rect.y < self.margin_bottom and self.margin_bottom - self.player.rect.y > 10:
                     self.current_scrolling_steps = int((self.margin_bottom - self.player.rect.y) / self.scrolling_speed)
                     self.scrolling = True
-                    self.score += int((self.margin_bottom - self.player.rect.y))
+                    self.player.score += int((self.margin_bottom - self.player.rect.y))
                     self.generate_new_bars()
 
                 self.player.jumping_time = 0.0
@@ -113,7 +133,7 @@ class Game():
         # Check if game ends
         if self.player.rect.y + self.player.rect.height / 2 > SCREEN_HEIGHT:
             self.done = True
-            quit()
+            #quit()
 
         # Check if bars need to be removed
         new_bars = list()
@@ -132,16 +152,17 @@ class Game():
             # Discretize the game
             if not play:
                 while self.step_wait:
-                    # time.sleep(0.1)
                     pass
-                    # print(self.step_wait)
 
             self.step_wait = True
-            print(self.player.is_moving_right)
 
             #dt = clock.tick(FPS) / 1000
             dt = 1./60.
-            time.sleep(dt)
+
+            if self.render:
+                #time.sleep(dt)
+                pass
+
             screen.fill(BLACK)
 
             # Query if the player pressed a key
@@ -157,31 +178,41 @@ class Game():
             # Update the game (also updates the player and the bars)
             self.update(dt=dt)
 
-            # Set the new state of the game
-            self.state = [self.player.rect.x, self.player.rect.y]
+            # Set the new state of the game (normalized state!!!)
+            closest_bar = self.get_closest_bar()
+            current_velocity = self.player.initial_jumping_velocity - g * self.player.jumping_time
+            y_distance = (self.player.rect.y - closest_bar.rect.y)/SCREEN_HEIGHT/2.
+            x_distance_left = (closest_bar.rect.x + closest_bar.rect.width/2 - self.player.rect.y) / SCREEN_WIDTH
+            x_distance_right = (closest_bar.rect.x - closest_bar.rect.width/2 - self.player.rect.y) / SCREEN_WIDTH
+            self.state = [self.player.rect.x/SCREEN_WIDTH, self.player.rect.y/SCREEN_HEIGHT/2., y_distance, x_distance_left, x_distance_right, current_velocity/self.player.initial_jumping_velocity]
             self.state_set = True
 
-            # Draw the new player position and bars
-            screen.blit(self.player.image, self.player.rect)
-            for bar in self.bars:
-                screen.blit(bar.image, bar.rect)
+            if self.render:
+                # Draw the new player position and bars
+                screen.blit(self.player.image, self.player.rect)
+                for bar in self.bars:
+                    screen.blit(bar.image, bar.rect)
 
-            # Set the score
-            myfont = pygame.font.SysFont('Arial', 20)
-            textsurface = myfont.render(str(self.score), False, (255, 255, 255))
-            text_rect_obj = textsurface.get_rect()
-            screen.blit(textsurface, text_rect_obj)
+                # Set the score
+                myfont = pygame.font.SysFont('Arial', 20)
+                textsurface = myfont.render(str(self.player.score), False, (255, 255, 255))
+                text_rect_obj = textsurface.get_rect()
+                screen.blit(textsurface, text_rect_obj)
 
-            #if not play:
-                #pass
-            #    self.player.is_moving_left = self.player.is_moving_right = False
+                #if not play:
+                    #pass
+                #    self.player.is_moving_left = self.player.is_moving_right = False
+                # Update the whole screen
+                pygame.display.update()
 
-            # Update the whole screen
-            pygame.display.update()
+            #print(self.done)
+            time.sleep(0.001)
+            if self.done:
+                break
 
     def start(self, play=False):
-        thread = threading.Thread(target=self._start,  args=(play,))
-        thread.start()
+        self.thread = threading.Thread(target=self._start,  args=(play,))
+        self.thread.start()
 
     def moveRight(self):
         self.player.is_moving_right = True
@@ -200,6 +231,55 @@ class Game():
 
         return self.state
 
+    def get_closest_bar(self):
+        # Find the closest bar to the player, i.e. the next bar above the player
+        closest_bar = None
+
+        # Solution 1: always find the bar that is currently closest to the player
+        """
+        # Find all the bars above the player
+        bars_above = list()
+        for bar in self.bars:
+            if bar.rect.y < self.player.rect.y:
+                bars_above.append(bar)
+
+        if len(bars_above) == 0:
+            return self.bars[0]
+
+        closest_bar = bars_above[0]
+        for bar in bars_above:
+            if self.player.rect.y > bar.rect.y > closest_bar.rect.y:
+                closest_bar = bar
+        """
+
+        # Solution 2: find the bar that is the closest to the last bar the player jumped on
+        if self.last_jumped_on_bar is None:
+            closest_bar = self.bars[0]
+            for bar in self.bars:
+                if bar.rect.y > closest_bar.rect.y:
+                    closest_bar = bar
+        else:
+            closest_bar = self.bars[-1]
+            while closest_bar.rect.y == self.last_jumped_on_bar.rect.y:
+                closest_bar = random.choice(self.bars)
+
+            for bar in self.bars:
+                if self.last_jumped_on_bar.rect.y > bar.rect.y > closest_bar.rect.y:
+                    closest_bar = bar
+
+        return closest_bar
+
+    def performAction(self, action):
+        if action == 0:
+            self.moveRight()
+        elif action == 1:
+            self.moveLeft()
+        elif action == 2:
+            pass
+
+    def end(self):
+        self.thread.join()
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -207,10 +287,12 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((32, 32))
         self.image.fill(WHITE)
 
+        self.score = 0
+
         self.rect = self.image.get_rect()
 
         # The initial position of the player
-        self.rect.x = 0
+        self.rect.x = SCREEN_WIDTH/3
         self.rect.y = SCREEN_HEIGHT - self.rect.height / 2 - 1
 
         self.jumping_time = 0.0
