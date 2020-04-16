@@ -1,6 +1,7 @@
 # Wow, that's NEAT!
 
-![Alt Text](capture/myimage.gif)
+
+<img src="capture/myimage.gif" width="200"/>
 
 State:
 1. x position player
