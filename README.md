@@ -2,9 +2,9 @@
 
 Using the NEAT algorithm so solve a Doodle Jump-styled game
 
-
-After training for 24 epochs
-<img src="capture/trained_model.gif" width="250"/>
+After training for 24 epochs            |
+:-------------------------:|
+<img src="capture/trained_model.gif" width="250"/>  | 
 
 
 State:
