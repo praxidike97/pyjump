@@ -7,7 +7,7 @@ import argparse
 from game import Game
 
 
-def test(genome, capture=False):
+def test_model(genome, capture=False):
     local_dir = os.path.dirname(__file__)
     config_file = os.path.join(local_dir, 'config-feedforward.txt')
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -112,11 +112,14 @@ def run_with_neat_library():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--capture', action='store_true')
+    parser.add_argument('--train', action='store_true')
+    parser.add_argument('model_path', action='store', type=str, nargs='?', default='models/best_genome.pkl')
     FLAGS, unparsed = parser.parse_known_args()
 
-    #run_with_neat_library()
+    if FLAGS.train:
+        run_with_neat_library()
 
-    with open('models/best_genome.pkl', 'rb') as handle:
+    with open(FLAGS.model_path, 'rb') as handle:
         genome = pickle.load(handle)
 
-    test(genome, FLAGS.capture)
+    test_model(genome, FLAGS.capture)
