@@ -1,5 +1,7 @@
 # Wow, that's NEAT!
 
+![Alt Text](capture/myimage.gif)
+
 State:
 1. x position player
 2. y position player

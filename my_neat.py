@@ -104,20 +104,25 @@ class NEAT():
         return agent
 
 
-def test():
+def test(genome):
+    local_dir = os.path.dirname(__file__)
+    config_file = os.path.join(local_dir, 'config-feedforward.txt')
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_file)
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+
     game = Game()
     game.render = True
     game.start(play=False)
     current_score = 0
     steps_since_last_score_change = 0
 
-    with open('best_agent.pkl', 'rb') as handle:
-        agent = pickle.load(handle)
-
     while not game.done:
 
         state = game.step()
-        action = agent.predict(np.array(state))
+        output = net.activate(state)
+        action = output.index(max(output))
         game.performAction(action=action)
 
         if game.player.score == current_score:
@@ -196,7 +201,7 @@ def run_with_neat_library():
     # Display the winning genome.
     print('\nBest genome:\n{!s}'.format(winner))
 
-    with open('best_agent.pkl', 'wb') as handle:
+    with open('best_genome.pkl', 'wb') as handle:
         pickle.dump(winner, handle)
 
     """
@@ -218,8 +223,12 @@ def run_with_neat_library():
 
 
 if __name__ == "__main__":
-    run_with_neat_library()
+    #run_with_neat_library()
 
+    with open('best_agent.pkl', 'rb') as handle:
+        genome = pickle.load(handle)
+
+    test(genome)
     sys.exit(0)
 
     epochs = 50

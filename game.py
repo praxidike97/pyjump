@@ -20,6 +20,7 @@ BAR_HEIGHT = 8
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+DARK_BLUE = (0, 0, 51)
 
 
 class Game():
@@ -44,6 +45,9 @@ class Game():
 
         # For programming interface: the last bar the player jumped on
         self.last_jumped_on_bar = None
+
+        self.play = False
+        self.window = None
 
         self.last_bar_left = False
 
@@ -81,9 +85,10 @@ class Game():
     def check_is_on_bar(self):
         # Check if the player will arrive on a bar in the next movement
         for bar in self.bars:
+            #print("play.rect.y: %f  bar.rect.y - bar.rect.height: %f  new play.rect.y: %f" % (self.player.rect.y + self.player.rect.height / 2, bar.rect.y - bar.rect.height, self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)) + 5))
             if (bar.rect.x - bar.rect.width / 2 < self.player.rect.x - self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2 or \
                 bar.rect.x - bar.rect.width / 2 < self.player.rect.x + self.player.rect.width / 2 < bar.rect.x + bar.rect.width / 2) and \
-                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)) + 1:
+                    self.player.rect.y + self.player.rect.height / 2 < bar.rect.y - bar.rect.height < self.player.rect.y + self.player.rect.height / 2 - round((self.player.initial_jumping_velocity - g * self.player.jumping_time)) + 5:
                 self.last_jumped_on_bar = bar
                 return True
         return False
@@ -147,6 +152,8 @@ class Game():
 
     def _start(self, play=False):
         pygame.font.init()
+        step_capture = 0
+
         while True:
 
             # Discretize the game
@@ -159,11 +166,10 @@ class Game():
             #dt = clock.tick(FPS) / 1000
             dt = 1./60.
 
-            if self.render:
-                #time.sleep(dt)
-                pass
+            if self.render and self.play:
+                time.sleep(dt)
 
-            screen.fill(BLACK)
+            screen.fill(DARK_BLUE)
 
             # Query if the player pressed a key
             for event in pygame.event.get():
@@ -205,10 +211,16 @@ class Game():
                 # Update the whole screen
                 pygame.display.update()
 
+                #if not self.window is None:
+                if step_capture%4 == 0:
+                    pygame.image.save(screen, "capture/screenshot-%s.jpeg" % (str(step_capture)).zfill(4))
+
             #print(self.done)
             time.sleep(0.001)
             if self.done:
                 break
+
+            step_capture += 1
 
     def start(self, play=False):
         self.thread = threading.Thread(target=self._start,  args=(play,))
@@ -284,12 +296,15 @@ class Game():
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((32, 32))
-        self.image.fill(WHITE)
+        #self.image = pygame.Surface((32, 32))
+        #self.image.fill(WHITE)
+
+        astronautImg = pygame.image.load('img/astronaut.png')
+        self.image = astronautImg
 
         self.score = 0
 
-        self.rect = self.image.get_rect()
+        self.rect = pygame.Surface((32, 70)).get_rect()#self.image.get_rect()
 
         # The initial position of the player
         self.rect.x = SCREEN_WIDTH/3
@@ -323,6 +338,10 @@ class Bar(pygame.sprite.Sprite):
         self.image = pygame.Surface((BAR_WIDTH, BAR_HEIGHT))
         # Give the bar a random color
         self.image.fill((random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)))
+
+        barImg = pygame.image.load('img/bar.png')
+        self.image = barImg
+
         self.rect = self.image.get_rect(x=position[0], y=position[1])
 
     def update(self, dt):
@@ -335,7 +354,8 @@ if __name__ == "__main__":
     FLAGS, unparsed = parser.parse_known_args()
 
     game = Game()
+    game.play = FLAGS.play
     pygame.font.init()
-    pygame.display.set_caption('PyJump')
+    game.window = pygame.display.set_caption('PyJump')
 
     game.start(play=FLAGS.play)
