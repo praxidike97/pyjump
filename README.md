@@ -1,7 +1,8 @@
 # Wow, that's NEAT!
 
-
-<img src="capture/myimage.gif" width="200"/>
+Solarized dark             |  Solarized Ocean
+:-------------------------:|:-------------------------:
+<img src="capture/myimage.gif" width="250"/>  |  <img src="capture/myimage.gif" width="250"/>
 
 State:
 1. x position player
