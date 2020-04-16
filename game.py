@@ -47,7 +47,7 @@ class Game():
         self.last_jumped_on_bar = None
 
         self.play = False
-        self.window = None
+        self.capture = False
 
         self.last_bar_left = False
 
@@ -211,9 +211,9 @@ class Game():
                 # Update the whole screen
                 pygame.display.update()
 
-                #if not self.window is None:
-                if step_capture%4 == 0:
-                    pygame.image.save(screen, "capture/screenshot-%s.jpeg" % (str(step_capture)).zfill(4))
+                if self.capture:
+                    if step_capture%4 == 0:
+                        pygame.image.save(screen, "capture/screenshot-%s.jpeg" % (str(step_capture)).zfill(4))
 
             #print(self.done)
             time.sleep(0.001)
