@@ -15,6 +15,9 @@ def test_model(genome, capture=False):
                          config_file)
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
+    if not os.path.exists('capture'):
+        os.makedirs('capture')
+
     game = Game()
     game.render = True
     game.capture = capture
