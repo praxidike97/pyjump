@@ -30,3 +30,10 @@ State of the game            |
 4. x difference between player and left side of the closest bar
 5. x difference between player and right side of the closest bar
 6. y velocity of the player
+
+## How to play
+To play this game on your own just run
+```
+python3 game.py --play
+```
+in the terminal. Control the player with the A- and D-key.
